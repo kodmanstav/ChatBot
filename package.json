@@ -1,5 +1,5 @@
 {
-  "name": "ChatBot",
+  "name": "my-app",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -13,12 +13,16 @@
     "concurrently": "^9.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "prettier": "^3.7.4"
+    "prettier": "^3.7.4",
+    "prisma": "6.19.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/client": "6.19.1"
+  }
 }
