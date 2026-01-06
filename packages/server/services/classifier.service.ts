@@ -3,7 +3,12 @@ import { llmClient } from '../llm/client';
 import { ROUTER_PROMPT } from '../prompts';
 
 export type RouterDecision = {
-   intent: 'getWeather' | 'calculateMath' | 'getExchangeRate' | 'generalChat';
+   intent:
+      | 'getWeather'
+      | 'calculateMath'
+      | 'getExchangeRate'
+      | 'analyzeReview'
+      | 'generalChat';
    parameters: Record<string, any>;
    confidence: number;
 };
@@ -27,6 +32,7 @@ function normalizeIntent(x: any): RouterDecision['intent'] {
    return x === 'getWeather' ||
       x === 'calculateMath' ||
       x === 'getExchangeRate' ||
+      x === 'analyzeReview' ||
       x === 'generalChat'
       ? x
       : 'generalChat';

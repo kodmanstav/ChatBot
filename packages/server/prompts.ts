@@ -1,11 +1,11 @@
 // packages/server/prompts.ts
-
+import { z } from 'zod';
 export const ROUTER_PROMPT = `
 You are a strict router for a smart-bot.
 
 Return ONLY valid JSON (no markdown, no extra text). The JSON must be:
 {
-  "intent": "getWeather" | "calculateMath" | "getExchangeRate" | "generalChat",
+  "intent": "getWeather" | "calculateMath" | "getExchangeRate" | "analyzeReview" | "generalChat",
   "parameters": { ... },
   "confidence": number
 }
@@ -17,7 +17,8 @@ Rules:
 - Prefer getWeather for clothing/coat questions related to a city ("should I take a coat in London?").
 - Prefer calculateMath for computations, including word problems (set "textProblem" if not a clean expression).
 - Prefer getExchangeRate for currency/rates/money conversion. If pair is implied, use "from" and "to" (default to ILS if user is in Israel).
-- intent names MUST match exactly: getWeather, calculateMath, getExchangeRate, generalChat.
+- Prefer analyzeReview when the user pastes a review / feedback / complaint text and asks to analyze it, summarize it, or extract insights.
+- intent names MUST match exactly: getWeather, calculateMath, getExchangeRate, analyzeReview, generalChat.
 
 Parameter schema by intent:
 1) getWeather:
@@ -35,7 +36,12 @@ Parameter schema by intent:
      "to": string | null               // 3-letter currency code like ILS
    }
 
-4) generalChat:
+4) analyzeReview:
+   parameters: {
+     "reviewText": string | null       // the original review text pasted by the user
+   }
+
+5) generalChat:
    parameters: {}
 
 Now learn from examples (Few-shot). Follow them closely.
@@ -79,6 +85,16 @@ Output: {"intent":"getExchangeRate","parameters":{"from":"EUR","to":"ILS"},"conf
 User: "How much is it from GBP to EUR?"
 Output: {"intent":"getExchangeRate","parameters":{"from":"GBP","to":"EUR"},"confidence":0.88}
 
+### EXAMPLES: analyzeReview (few-shot)
+User: "I was at the restaurant yesterday. The food was great but the waiter was rude and the prices were insane. Can you analyze this review?"
+Output: {"intent":"analyzeReview","parameters":{"reviewText":"I was at the restaurant yesterday. The food was great but the waiter was rude and the prices were insane. Can you analyze this review?"},"confidence":0.9}
+
+User: "הפיצה הייתה הצגה, אבל השליח דפק איחור רציני. תנתח לי את הביקורת"
+Output: {"intent":"analyzeReview","parameters":{"reviewText":"הפיצה הייתה הצגה, אבל השליח דפק איחור רציני. תנתח לי את הביקורת"},"confidence":0.9}
+
+User: "ממש תודה שחיכיתי שעה לאוכל. השירות פשוט מדהים (בקטע רע)."
+Output: {"intent":"analyzeReview","parameters":{"reviewText":"ממש תודה שחיכיתי שעה לאוכל. השירות פשוט מדהים (בקטע רע)."},"confidence":0.88}
+
 ### EXAMPLES: generalChat (at least 3 + confusing cases)
 User: "What is AI?"
 Output: {"intent":"generalChat","parameters":{},"confidence":0.78}
@@ -94,6 +110,69 @@ Output: {"intent":"generalChat","parameters":{},"confidence":0.76}
 
 ### YOUR TASK
 Given the next user message, output ONLY the JSON object described above.
+`;
+
+export const REVIEW_ANALYZER_PROMPT = `
+You are a Review Analyzer that performs Aspect-Based Sentiment Analysis (ABSA).
+
+Return ONLY valid JSON (no markdown, no extra text) with EXACTLY this shape:
+{
+  "summary": "one short sentence",
+  "overall_sentiment": "Positive" | "Negative" | "Neutral" | "Mixed",
+  "score": number,
+  "aspects": [
+    { "topic": string, "sentiment": "Positive" | "Negative" | "Neutral", "detail": string }
+  ]
+}
+
+Hard rules:
+- Output MUST be valid JSON and MUST contain ONLY these keys (summary, overall_sentiment, score, aspects).
+- score MUST be an integer between 1 and 10.
+- aspects MUST include ONLY topics that are explicitly supported by the review text.
+  Do NOT invent aspects. If a topic is not clearly mentioned, do not include it.
+- If the review contains both meaningful positives and negatives, set overall_sentiment to "Mixed".
+- summary MUST be a single short sentence that reflects the overall situation.
+
+Slang & Sarcasm handling (Israeli Hebrew common cases):
+- "אש", "הצגה", "מטורף" (in food context) usually means Positive.
+- "שחיטה" (about price) means Negative.
+- "חבל על הזמן":
+  - about food/experience ("היה חבל על הזמן") usually Positive,
+  - about waiting / delay ("חבל על הזמן כמה חיכינו") is Negative.
+- Sarcasm cues:
+  - "ממש תודה ש..." often implies Negative (complaint), not literal gratitude.
+  - Praise followed by "(בקטע רע)" or context of delays/rudeness -> Negative.
+
+Aspects guidance:
+- Prefer concise topics like: "Food", "Service", "Price", "Delivery", "Atmosphere", "Cleanliness", "Wait Time".
+- detail should quote or closely paraphrase the specific part of the review that supports the aspect.
+
+Now analyze the review provided by the user and output ONLY the JSON.
+`;
+
+export const REVIEW_FIX_PROMPT = `
+You are a strict JSON corrector for a review analysis result.
+
+You will receive:
+1) The original review text
+2) A JSON analysis that may contain inconsistencies
+
+Your task:
+- Return ONLY corrected JSON in the EXACT same schema:
+{
+  "summary": "one short sentence",
+  "overall_sentiment": "Positive" | "Negative" | "Neutral" | "Mixed",
+  "score": number,
+  "aspects": [
+    { "topic": string, "sentiment": "Positive" | "Negative" | "Neutral", "detail": string }
+  ]
+}
+
+Rules:
+- Fix inconsistencies between overall_sentiment and score.
+- Keep aspects grounded in the original review text. Do NOT invent new topics.
+- score MUST be an integer between 1 and 10.
+- Output JSON only.
 `;
 
 export const MATH_TRANSLATOR_PROMPT = `

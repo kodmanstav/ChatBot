@@ -6,6 +6,7 @@ import { calculateMath } from './math.service';
 import { getExchangeRate } from './exchange.service';
 import { generalChat } from './general-chat.service';
 import { translateWordProblemToExpression } from './math-translator.service';
+import { reviewAnalyzerService } from './review-analyzer.service';
 
 export type RouteResult = { message: string; responseId?: string };
 
@@ -28,6 +29,28 @@ export async function routeMessage(
    if (decision.confidence < 0.45) {
       const r = await generalChat(context, userInput, previousResponseId);
       return { message: r.message, responseId: r.responseId };
+   }
+
+   if (decision.intent === 'analyzeReview') {
+      const reviewText =
+         typeof decision.parameters?.reviewText === 'string' &&
+         decision.parameters.reviewText.trim()
+            ? decision.parameters.reviewText
+            : userInput;
+
+      try {
+         const result = await reviewAnalyzerService.analyzeReview(reviewText);
+
+         console.log('[review] selfCorrectionApplied:', result.selfCorrected);
+
+         // Note: no responseId here (stateless analysis, no conversational continuity needed)
+         return { message: result.formatted };
+      } catch (err) {
+         console.error('[review] analyzeReview error:', err);
+         // graceful fallback (still comply with system stability)
+         const r = await generalChat(context, userInput, previousResponseId);
+         return { message: r.message, responseId: r.responseId };
+      }
    }
 
    if (decision.intent === 'getWeather') {

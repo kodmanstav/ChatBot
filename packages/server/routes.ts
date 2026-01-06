@@ -24,7 +24,8 @@ router.post('/api/chat', async (req, res) => {
 
    try {
       const result = await chatService.sendMessage(prompt, conversationId);
-      return res.json({ message: result.message });
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(result.message);
    } catch (err) {
       console.error('[routes] /api/chat error:', err);
       return res.status(500).json({ error: 'Internal Server Error' });
