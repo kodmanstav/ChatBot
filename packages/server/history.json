@@ -80,6 +80,30 @@
       {
         "role": "assistant",
         "content": "Official ILS rate is 0.2667 USD."
+      },
+      {
+        "role": "user",
+        "content": "חיפה"
+      },
+      {
+        "role": "assistant",
+        "content": "Could not find city \"חיפה\". Try another name."
+      },
+      {
+        "role": "user",
+        "content": "חיפה"
+      },
+      {
+        "role": "assistant",
+        "content": "חיפה, חיפה: 17°C, Mostly clear, wind 33.3 km/h"
+      },
+      {
+        "role": "user",
+        "content": "חיפה"
+      },
+      {
+        "role": "assistant",
+        "content": "חיפה, חיפה: 17°C, בהיר ברובו, רוח 33.3 קמ\"ש"
       }
     ],
     "lastResponseId": "5bda0634-9066-4609-b2d3-7ad95cddf6f9"
